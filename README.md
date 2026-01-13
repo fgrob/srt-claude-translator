@@ -1,6 +1,6 @@
 # SRT Translator
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill for translating SRT subtitle files.
+A translation tool powered by [Claude Code](https://docs.anthropic.com/en/docs/claude-code) for SRT subtitle files.
 
 ## What it does
 
