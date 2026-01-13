@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python hooks/split.py*)",
+      "Bash(python hooks/join.py*)",
+      "Bash(python hooks/validate_chunk.py*)"
+    ]
+  }
+}

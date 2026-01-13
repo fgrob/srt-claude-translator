@@ -1,0 +1,19 @@
+# Temporary files
+chunks/*.srt
+chunks/.source
+translated/*.srt
+context.md
+
+# User data
+input/*.srt
+output/*.srt
+
+# Keep empty dirs
+!*/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+
+# Local settings
+.claude/settings.local.json
