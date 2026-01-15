@@ -13,8 +13,9 @@ Before starting, ask:
 2. **Target language**: What language?
    - If "Spanish" → Spain or Latin America?
    - If Latin American → Country preference for tiebreakers? (only used when choosing between equally valid regional variants)
-3. **Accessibility aids**: Remove `(sighs)`, `[gunshot]`, `♪ music ♪`?
+3. **Accessibility aids**: Remove `(sighs)`, `[gunshot]`, `♪♪`?
    - Remove (recommended) / Keep
+   - Note: actual song LYRICS between ♪ symbols are always translated, never removed
 
 Save the answers to pass them to subagents.
 
@@ -91,7 +92,9 @@ VALIDATE:
 - `{\an8}` and other ASS codes
 
 **If removing accessibility aids:**
-- Remove `(text)`, `[text]`, `♪ text ♪`, `- NAME:`
+- Remove `(text)`, `[text]`, `- NAME:`
+- Remove music indicators: `♪♪`, `♪ music ♪`, `♪ singing ♪`
+- KEEP and translate actual song lyrics: `♪ Lyrics here ♪` → `♪ Letra traducida ♪`
 - If block becomes empty → leave it empty (DO NOT delete the block)
 
 ## 5. RESUME WORK

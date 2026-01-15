@@ -1,6 +1,6 @@
 # SRT Translator
 
-A translation tool powered by [Claude Code](https://docs.anthropic.com/en/docs/claude-code) for SRT subtitle files.
+A translation tool powered by [Claude Code](https://docs.anthropic.com/en/docs/claude-code) for SRT subtitle files. Not fast, but remarkably effective.
 
 ## What it does
 
@@ -18,7 +18,7 @@ Translates large SRT files (~8000+ lines) without losing context or quality.
 
 If interrupted, it can resume from the last validated chunk.
 
-**Note:** Sequential processing means a full movie can take 10+ minutes. This is intentional—parallel would be faster but lose context consistency.
+**Note:** Sequential processing means a full movie can take 20+ minutes. This is intentional—parallel would be faster but lose context consistency.
 
 ## Usage
 
