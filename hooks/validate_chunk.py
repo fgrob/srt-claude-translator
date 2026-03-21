@@ -169,8 +169,11 @@ def validate(original_path, translated_path):
             )
 
         # Validation 5: Line length (warning only)
+        # Strip HTML/ASS tags before counting — they take no visual space
         for line_idx, line in enumerate(trans['text_lines'], 1):
-            line_len = len(line.rstrip())
+            visual_line = re.sub(r'<[^>]+>', '', line)  # HTML tags
+            visual_line = re.sub(r'\{\\[^}]+\}', '', visual_line)  # ASS codes
+            line_len = len(visual_line.rstrip())
             if line_len > 45:
                 warnings.append(
                     f"Block {idx}, line {line_idx}: exceeds 45 characters "

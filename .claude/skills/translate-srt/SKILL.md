@@ -5,24 +5,23 @@ description: Translates SRT subtitle files to other languages. Use this skill wh
 
 # Skill: Translate SRT
 
-## 1. INITIAL QUESTIONS
+## 1. INITIAL SETUP
 
-Before starting, ask:
+Before starting:
 
-1. **File**: List `input/*.srt` and ask which one to translate
-2. **Target language**: What language?
-   - If "Spanish" → Spain or Latin America?
-   - If Latin American → Country preference for tiebreakers? (only used when choosing between equally valid regional variants)
-3. **Accessibility aids**: Remove `(sighs)`, `[gunshot]`, `♪♪`?
-   - Remove (recommended) / Keep
-   - Note: actual song LYRICS between ♪ symbols are always translated, never removed
+1. **Load defaults**: Read `config.yml` for default settings (language, variant, country, accessibility aids)
+2. **File**: List `input/*.srt` and ask which one to translate
+3. **Show defaults**: Display current config in a compact summary, e.g.:
+   > Configuración: Español latinoamericano (Chile), eliminar ayudas de accesibilidad
+4. **Ask once**: "¿Cambiar algo?" — only ask follow-up questions if the user wants to change something
+5. **Check for previous chunks**: If `chunks/` has files, ask right away: "Hay chunks de una traducción anterior. ¿Retomar o empezar de cero?" — don't spend time checking `.source` or analyzing first
 
-Save the answers to pass them to subagents.
+Save the final answers to pass them to subagents.
 
 ## 2. PROCESS
 
 ```
-1. Clean from previous process: empty chunks/, translated/, create fresh context.md with:
+1. If not resuming, clean from previous process: empty chunks/, translated/, create fresh context.md with:
    ```
    # Shared Context
 
@@ -92,16 +91,26 @@ VALIDATE:
 - `{\an8}` and other ASS codes
 
 **If removing accessibility aids:**
-- Remove `(text)`, `[text]`, `- NAME:`
-- Remove music indicators: `♪♪`, `♪ music ♪`, `♪ singing ♪`
-- KEEP and translate actual song lyrics: `♪ Lyrics here ♪` → `♪ Letra traducida ♪`
-- If block becomes empty → leave it empty (DO NOT delete the block)
+
+REMOVE these (they describe sounds for hearing-impaired viewers):
+- Sound descriptions: `(sighs)`, `(laughs)`, `[door closes]`, `[gunshot]`
+- Speaker labels: `- JOHN:`, `- NARRATOR:`
+- Pure music indicators with no lyrics: `♪♪`, `♪ ♪`
+- Descriptions of music/singing: `♪ singing ♪`, `[singing]`, `(humming)`, `[music playing]`
+
+KEEP and TRANSLATE these (they are actual content):
+- Song lyrics between ♪: `♪ Yesterday, all my troubles ♪` → `♪ Ayer, todos mis problemas ♪`
+- Song lyrics in any format — the key distinction is whether the text contains **actual words being sung** vs a **description of the action of singing/music**. Examples:
+  - `[singing in French]` → REMOVE (description of action)
+  - `♪ La vie en rose ♪` → KEEP and translate (actual lyrics)
+  - `# When the morning comes #` → KEEP and translate (lyrics, `#` is sometimes used instead of `♪`)
+- When in doubt: if it reads like words someone is singing, it's lyrics → translate. If it reads like a stage direction, it's an accessibility aid → remove.
+
+If a block becomes empty after removal → leave it empty (DO NOT delete the block)
 
 ## 5. RESUME WORK
 
-If there are chunks in `chunks/`:
-1. Check `chunks/.source` to see which file they came from
-2. If DIFFERENT file (or .source missing) → clean everything and start fresh
-3. If SAME file → ask user: "Resume previous translation or start fresh?"
-   - If RESUME: validate existing translated chunks, continue from first invalid/missing
-   - If START FRESH: clean everything
+Handled in step 1.5 of INITIAL SETUP: if `chunks/` has files, ask the user directly whether to resume or start fresh. No need to check `.source` first — just ask.
+
+- If **RESUME**: first verify that chunks match an existing file in `input/` by checking `chunks/.source`. If the source file no longer exists in `input/`, inform the user and start fresh instead. If it matches, validate existing translated chunks and continue from first invalid/missing.
+- If **START FRESH**: clean everything and proceed normally

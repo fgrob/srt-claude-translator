@@ -1,0 +1,15 @@
+# Default configuration for SRT translator
+# These values are loaded automatically. You'll be asked if you want to change any before starting.
+
+# Target language
+language: Spanish
+
+# Variant: Spain / Latin America
+variant: Latin America
+
+# Country preference for regional tiebreakers (only used when choosing between equally valid variants)
+country: Chile
+
+# Remove accessibility aids like (sighs), [gunshot], ♪♪, - NAME:
+# Note: actual song LYRICS between ♪ symbols are always translated, never removed
+remove_accessibility_aids: true

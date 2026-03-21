@@ -126,19 +126,16 @@ def format_output(blocks):
 
 
 def get_original_filename():
-    """Try to determine the original filename from input directory."""
+    """Determine the original filename from chunks/.source."""
     script_dir = Path(__file__).parent.parent
-    input_dir = script_dir / 'input'
+    source_file = script_dir / 'chunks' / '.source'
 
-    srt_files = list(input_dir.glob('*.srt'))
-    if len(srt_files) == 1:
-        return srt_files[0].name
-    elif len(srt_files) > 1:
-        # Return most recently modified
-        srt_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-        return srt_files[0].name
-    else:
-        return 'translated.srt'
+    if source_file.exists():
+        name = source_file.read_text(encoding='utf-8').strip()
+        if name:
+            return name
+
+    return 'translated.srt'
 
 
 def main():
@@ -178,14 +175,24 @@ def main():
 
     print(f"\nTotal blocks collected: {len(all_blocks)}")
 
+    # Validate against original file
+    output_filename = get_original_filename()
+    original_path = script_dir / 'input' / output_filename
+    if original_path.exists():
+        with open(original_path, 'r', encoding='utf-8-sig') as f:
+            original_content = f.read().replace('\r\n', '\n').replace('\r', '\n')
+        original_blocks = parse_blocks(remove_context_section(original_content))
+        if len(original_blocks) != len(all_blocks):
+            print(f"\nERROR: Block count mismatch! Original: {len(original_blocks)}, translated: {len(all_blocks)}")
+            sys.exit(1)
+        print(f"Block count verified: {len(all_blocks)} matches original")
+
     # Format output
     output_content, empty_count = format_output(all_blocks)
 
     # Create output directory if needed
     output_dir.mkdir(exist_ok=True)
 
-    # Determine output filename
-    output_filename = get_original_filename()
     output_path = output_dir / output_filename
 
     # Write output file

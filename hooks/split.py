@@ -19,49 +19,6 @@ CONTEXT_BLOCKS = 5
 def parse_srt_blocks(content):
     """Parse SRT content into list of blocks."""
     blocks = []
-    current_block = []
-
-    lines = content.split('\n')
-    i = 0
-
-    while i < len(lines):
-        line = lines[i]
-
-        # Skip empty lines at the start
-        if not line.strip() and not current_block:
-            i += 1
-            continue
-
-        # Check if this is the start of a new block (sequence number)
-        if re.match(r'^\d+$', line.strip()) and current_block:
-            # Save the previous block
-            blocks.append('\n'.join(current_block))
-            current_block = []
-
-        current_block.append(line)
-
-        # Check if we hit an empty line (end of block)
-        if not line.strip() and current_block:
-            # Check if the block has content (not just empty lines)
-            block_content = '\n'.join(current_block).strip()
-            if block_content and re.match(r'^\d+\s*\n', block_content):
-                blocks.append('\n'.join(current_block))
-                current_block = []
-
-        i += 1
-
-    # Don't forget the last block
-    if current_block:
-        block_content = '\n'.join(current_block).strip()
-        if block_content:
-            blocks.append('\n'.join(current_block))
-
-    return blocks
-
-
-def parse_srt_blocks_v2(content):
-    """Parse SRT content into list of blocks (improved version)."""
-    blocks = []
 
     # Split by double newlines or by detecting block patterns
     # A block is: number, timestamp, text lines, empty line
@@ -189,7 +146,7 @@ def main():
     # Normalize line endings (CRLF -> LF)
     content = content.replace('\r\n', '\n').replace('\r', '\n')
 
-    blocks = parse_srt_blocks_v2(content)
+    blocks = parse_srt_blocks(content)
     total_blocks = len(blocks)
 
     if total_blocks == 0:
