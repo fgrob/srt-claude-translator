@@ -14,7 +14,8 @@ Before starting:
 3. **Show defaults**: Display current config in a compact summary, e.g.:
    > Configuración: Español latinoamericano (Chile), eliminar ayudas de accesibilidad
 4. **Ask once**: "¿Cambiar algo?" — only ask follow-up questions if the user wants to change something
-5. **Check for previous chunks**: If `chunks/` has files, ask right away: "Hay chunks de una traducción anterior. ¿Retomar o empezar de cero?" — don't spend time checking `.source` or analyzing first
+5. **Check for previous chunks**: If `chunks/` has files, ask right away with numbered options:
+   > Hay chunks anteriores. ¿0: nuevo, 1: retomar?
 
 Save the final answers to pass them to subagents.
 
