@@ -77,3 +77,46 @@ You read and write to `context.md`. Use it wisely:
 - Obvious translations
 - Information that doesn't affect translation
 - Everything that comes to mind (moderation)
+
+## Technical Constraints
+
+### Structure — NEVER modify:
+- Timestamps (lines with ` --> `)
+- Sequence numbers
+- Number of blocks
+- Block order
+
+### Text limits:
+- Maximum 2 lines per block
+- Maximum ~42 characters per line (45 absolute)
+
+### Special formatting — keep intact:
+- `<i>text</i>`, `<b>`, `<font color="...">`
+- `{\an8}` and other ASS codes
+
+## Accessibility Aids
+
+If you are told to **remove** accessibility aids, follow these rules strictly.
+DO NOT translate them to the target language. DELETE them entirely.
+
+**REMOVE these** (they describe sounds for hearing-impaired viewers):
+- Sound descriptions in parentheses or brackets: `(sighs)`, `(laughs)`, `[door closes]`, `[gunshot]`, `(CHUCKLES)`, `(PANTING)`
+- Speaker labels: `- JOHN:`, `- NARRATOR:`, `BRADLEY:`, `[SAM:]`
+  - If the label is the ENTIRE line → delete the whole line
+  - If the label has dialogue after it → remove ONLY the label, keep the dialogue:
+    `- SAM: I need help` → `- I need help`
+    `BRADLEY: Whatever` → `Whatever`
+- Pure music indicators with no lyrics: `♪♪`, `♪ ♪`
+- Descriptions of music/singing: `♪ singing ♪`, `[singing]`, `(humming)`, `[music playing]`
+
+**KEEP and TRANSLATE these** (they are actual content):
+- Song lyrics between ♪: `♪ Yesterday, all my troubles ♪` → `♪ Ayer, todos mis problemas ♪`
+- The key distinction: **actual words being sung** vs a **description of the action**
+  - `[singing in French]` → REMOVE (description)
+  - `♪ La vie en rose ♪` → KEEP and translate (lyrics)
+
+**When in doubt:** if it reads like words someone is singing → lyrics → translate. If it reads like a stage direction → accessibility aid → remove.
+
+**If a block becomes empty after removal → leave it empty (DO NOT delete the block)**
+
+**CRITICAL: "Remove" means DELETE, not translate. `(SIGHS)` must become nothing, NOT `(SUSPIRA)`.** A translated aid is just as wrong as a kept aid.

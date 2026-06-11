@@ -8,6 +8,8 @@ context.md
 input/*.srt
 output/*.srt
 
+locales/*
+
 # Keep empty dirs
 !*/.gitkeep
 

@@ -14,10 +14,60 @@ Before starting:
 3. **Show defaults**: Display current config in a compact summary, e.g.:
    > Configuración: Español latinoamericano (Chile), eliminar ayudas de accesibilidad
 4. **Ask once**: "¿Cambiar algo?" — only ask follow-up questions if the user wants to change something
-5. **Check for previous chunks**: If `chunks/` has files, ask right away with numbered options:
+5. **Check locale profile**: Derive the locale code from language+country using BCP 47 format (language tag + region tag): Spanish+Chile → `es-CL`, Spanish+Argentina → `es-AR`, Spanish+Mexico → `es-MX`, English+US → `en-US`, Portuguese+Brazil → `pt-BR`, French+France → `fr-FR`. Check if `locales/<locale>.md` exists.
+   - If it **exists**: silently use it (mention it in the config summary, e.g. "Perfil de localización: es-CL ✓")
+   - If it **doesn't exist**: tell the user and offer to generate it before proceeding:
+     > No tengo perfil de localización para es-CL. ¿Lo genero ahora? (recomendado)
+     - If yes → run the **LOCALE GENERATION** flow below, then continue
+     - If no → proceed without locale profile (translation will be less precise)
+6. **Check for previous chunks**: If `chunks/` has files, ask right away with numbered options:
    > Hay chunks anteriores. ¿0: nuevo, 1: retomar?
 
 Save the final answers to pass them to subagents.
+
+## 1.5 LOCALE GENERATION
+
+When a locale profile is missing, generate it with a subagent:
+
+**Subagent prompt:**
+```
+You are a professional linguist specializing in dialectal variation and subtitle translation.
+
+Write a compact locale profile for: [LOCALE CODE] — [LANGUAGE] as spoken in [COUNTRY/REGION].
+
+This file is read by a translation model before translating subtitles. The model already knows the language fluently. Your job is NOT to teach it — it is to ANCHOR the 4–5 dialectal axes that distinguish this locale from others, so the model doesn't drift toward a generic or neighboring variant.
+
+Structure the profile around these linguistic axes:
+
+## 1. Pronominal system
+Which second-person pronoun (tú / vos / usted)? Any register exceptions? One or two lines max.
+
+## 2. Discourse markers
+The 3–5 oral markers that immediately signal this locale to a native ear. Discourse markers are functional words that signal turn-taking, register, or conversational rhythm — not content words or culturally untranslatable nouns. For each: the word/phrase, what it means, and one-line guidance on when to use it in subtitles (sparingly? freely? only in highly colloquial exchanges?).
+
+## 3. High-frequency lexical anchors
+The 8–10 words that come up constantly in informal dialogue and have a locale-specific form. Don't list obvious vocabulary — only words where the model might default to a different region's variant. For each: the correct local word and what NOT to use instead. Only include words where a wrong regional variant exists — if a word simply has no translation, it doesn't belong here.
+
+## 4. Profanity system
+Don't list translations of English swearwords. Instead: describe HOW profanity works in this locale. What is the most versatile/central swearword? What is the strongest? How is intensity signaled? Are there words that shift meaning entirely based on tone?
+
+For every word you mention: give the spelling to use in subtitles — one spelling only, the correct one for informal written dialogue. Do not mention alternative spellings, formal spellings, or academic spellings. One word, one form.
+
+Only include words you are certain are specific to this locale. If a word is generic Latin American or pan-Hispanic, omit it — do not pad the list.
+
+## 5. What NOT to do
+List 5–8 specific words or constructions from neighboring/related variants that would immediately sound wrong to a native of this locale. Just the words — no need to explain why.
+
+Total length: 30–40 lines. No filler. No introductions. No conclusions. Concrete examples only.
+
+Save the result to: locales/[LOCALE].md
+Working directory: the root of the srt_claude_translator project
+```
+
+After the subagent finishes:
+- Show the user a brief summary of what was generated
+- Ask: "¿Quieres revisar o ajustar algo antes de continuar?"
+- If yes → show the file content and let them edit; if no → proceed
 
 ## 2. PROCESS
 
@@ -38,8 +88,8 @@ Save the final answers to pass them to subagents.
    → Wait for it to finish and validate
    → If fails 3 times, abort
 4. python hooks/join.py
-5. Report: file ready in output/
-   (chunks/, translated/ and context.md remain for review)
+5. Delete chunks/ and translated/ contents (the join succeeded — nothing to resume)
+6. Report: file ready in output/
 ```
 
 ## 3. TRANSLATION SUBAGENT
@@ -55,9 +105,23 @@ CONFIGURATION:
 - Accessibility aids: [remove/keep]
 
 BEFORE TRANSLATING, READ:
-1. .claude/skills/translate-srt/TRANSLATION_GUIDE.md (translation principles)
-2. context.md (terms, characters and notes from previous chunks)
-3. The chunk: chunks/[chunk_name]
+1. .claude/skills/translate-srt/TRANSLATION_GUIDE.md (translation principles AND technical constraints)
+2. locales/[LOCALE].md — locale profile: pronominal system, discourse markers, lexical anchors, profanity system, and what NOT to use. This file anchors the dialect — follow it strictly.
+3. context.md (terms, characters and notes from previous chunks)
+4. The chunk: chunks/[chunk_name]
+
+[IF ACCESSIBILITY AIDS = REMOVE, INCLUDE THIS BLOCK:]
+ACCESSIBILITY AIDS — REMOVE:
+You MUST delete all accessibility aids. Do NOT translate them to the target language.
+- Delete sound descriptions: (sighs), (PANTING), [door closes], (CHUCKLES), etc.
+- Delete speaker labels: - JOHN:, BRADLEY:, - NARRATOR:, [SAM:]
+  - If label has dialogue after it, remove ONLY the label, keep the dialogue: "- SAM: I need help" → "- I need help"
+- Delete pure music indicators: ♪♪, ♪ ♪
+- Delete music/singing descriptions: [singing], (humming), [music playing]
+- KEEP and translate actual song lyrics: ♪ words being sung ♪
+- If a block becomes empty after removal, leave it empty (do NOT delete the block)
+- CRITICAL: "Remove" means DELETE completely. (SIGHS) must become nothing, NOT (SUSPIRA). A translated aid is still a failure.
+[END BLOCK]
 
 TRANSLATE:
 - Follow the guide's principles
@@ -70,7 +134,7 @@ SAVE:
 - If you added info, update context.md
 
 VALIDATE:
-- Run: python hooks/validate_chunk.py chunks/[chunk] translated/[chunk]
+- Run: python hooks/validate_chunk.py chunks/[chunk] translated/[chunk] [add --check-aids if accessibility aids = remove]
 - If it fails, correct and retry (max 3 attempts)
 - Report OK or the final error
 ```

@@ -100,10 +100,16 @@ def parse_blocks(content):
     return blocks
 
 
+def clean_orphan_dashes(text_lines):
+    """Remove orphan dashes left over from accessibility aid removal."""
+    return [line for line in text_lines if not re.match(r'^-\s*$', line.strip())]
+
+
 def format_output(blocks):
     """Format blocks into SRT output, renumbering sequentially."""
     output_lines = []
     empty_count = 0
+    orphan_dashes_cleaned = 0
 
     for idx, block in enumerate(blocks, 1):
         # Add sequence number (renumbered)
@@ -112,9 +118,14 @@ def format_output(blocks):
         # Add timestamp
         output_lines.append(block['timestamp'])
 
+        # Clean orphan dashes from text lines
+        cleaned_lines = clean_orphan_dashes(block['text_lines'])
+        if len(cleaned_lines) < len(block['text_lines']):
+            orphan_dashes_cleaned += len(block['text_lines']) - len(cleaned_lines)
+
         # Add text lines (may be empty)
-        if block['text_lines']:
-            for line in block['text_lines']:
+        if cleaned_lines:
+            for line in cleaned_lines:
                 output_lines.append(line)
         else:
             empty_count += 1
@@ -122,7 +133,7 @@ def format_output(blocks):
         # Empty line to separate blocks
         output_lines.append('')
 
-    return '\n'.join(output_lines), empty_count
+    return '\n'.join(output_lines), empty_count, orphan_dashes_cleaned
 
 
 def get_original_filename():
@@ -188,7 +199,7 @@ def main():
         print(f"Block count verified: {len(all_blocks)} matches original")
 
     # Format output
-    output_content, empty_count = format_output(all_blocks)
+    output_content, empty_count, orphan_dashes_cleaned = format_output(all_blocks)
 
     # Create output directory if needed
     output_dir.mkdir(exist_ok=True)
@@ -205,6 +216,8 @@ def main():
     print(f"  - Blocks in final file: {len(all_blocks)}")
     if empty_count > 0:
         print(f"  - Empty blocks (removed aids): {empty_count}")
+    if orphan_dashes_cleaned > 0:
+        print(f"  - Orphan dashes cleaned: {orphan_dashes_cleaned}")
     print(f"  - Generated file: {output_path}")
 
 

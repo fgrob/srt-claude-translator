@@ -2,7 +2,7 @@
 """
 Validate translated SRT chunk against original.
 
-Usage: python validate_chunk.py chunks/<chunk> translated/<chunk>
+Usage: python validate_chunk.py chunks/<chunk> translated/<chunk> [--check-aids]
 
 Validates:
 - Same number of blocks
@@ -11,6 +11,7 @@ Validates:
 - Text lines <= 45 characters (warning)
 - Max 2 text lines per block (error)
 - Allows empty text blocks (for removed accessibility aids)
+- With --check-aids: detects residual accessibility aids (error)
 
 Exit code 0 if OK, 1 if errors found.
 """
@@ -105,10 +106,57 @@ def parse_blocks(content):
     return blocks
 
 
-def validate(original_path, translated_path):
+def detect_accessibility_aids(text_lines):
+    """
+    Detect residual accessibility aids in translated text.
+    Returns list of detected aids.
+    Checks for both English and Spanish patterns.
+    """
+    aids_found = []
+    full_text = ' '.join(text_lines)
+
+    # Pattern: entire line is (ALLCAPS WORDS) or [ALLCAPS WORDS] — pure sound effect
+    # Matches: (SIGHS), (PANTING), [GUNSHOT], (SUSPIRA), (JADEANDO), etc.
+    for line in text_lines:
+        stripped = line.strip().lstrip('- ')
+        if re.match(r'^\([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ\s]+\)$', stripped):
+            aids_found.append(stripped)
+        elif re.match(r'^\[[A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ\s]+\]$', stripped):
+            aids_found.append(stripped)
+
+    # Pattern: inline (ALLCAPS) within dialogue text
+    # Matches: "Okay. (SIGHS)" or "(SUSPIRA) Ya basta"
+    inline = re.findall(r'\([A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜ\s]{2,}\)', full_text)
+    for match in inline:
+        if match not in aids_found:
+            aids_found.append(match)
+
+    # Pattern: speaker labels at start — "NAME:" or "- NAME:"
+    # But only ALLCAPS names followed by colon
+    for line in text_lines:
+        stripped = line.strip()
+        label_match = re.match(r'^-?\s*[A-ZÁÉÍÓÚÑÜ]{2,}:\s', stripped)
+        if label_match:
+            aids_found.append(label_match.group().strip())
+
+    # Pattern: pure music indicators with no lyrics
+    for line in text_lines:
+        stripped = line.strip()
+        if re.match(r'^♪+\s*♪*$', stripped):
+            aids_found.append(stripped)
+
+    # Pattern: orphan dashes (leftover from removed "- (SIGHS)" etc.)
+    for line in text_lines:
+        if re.match(r'^-\s*$', line.strip()):
+            aids_found.append('orphan dash: "-"')
+
+    return aids_found
+
+
+def validate(original_path, translated_path, check_aids=False):
     """
     Validate translated chunk against original.
-    Returns tuple: (is_valid, errors, warnings)
+    Returns tuple: (is_valid, errors, warnings, empty_blocks)
     """
     errors = []
     warnings = []
@@ -180,18 +228,30 @@ def validate(original_path, translated_path):
                     f"(has {line_len})"
                 )
 
+        # Validation 6: Residual accessibility aids (only with --check-aids)
+        if check_aids and len(trans['text_lines']) > 0:
+            aids = detect_accessibility_aids(trans['text_lines'])
+            for aid in aids:
+                errors.append(
+                    f"Block {idx}: residual accessibility aid detected: {aid}"
+                )
+
     is_valid = len(errors) == 0
     return is_valid, errors, warnings, empty_blocks
 
 
 def main():
-    if len(sys.argv) < 3:
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    flags = [a for a in sys.argv[1:] if a.startswith('--')]
+    check_aids = '--check-aids' in flags
+
+    if len(args) < 2:
         print("Error: Must specify original and translated files")
-        print("Usage: python validate_chunk.py chunks/<chunk> translated/<chunk>")
+        print("Usage: python validate_chunk.py chunks/<chunk> translated/<chunk> [--check-aids]")
         sys.exit(1)
 
-    original_path = Path(sys.argv[1])
-    translated_path = Path(sys.argv[2])
+    original_path = Path(args[0])
+    translated_path = Path(args[1])
 
     if not original_path.exists():
         print(f"Error: Original file '{original_path}' does not exist")
@@ -201,7 +261,7 @@ def main():
         print(f"Error: Translated file '{translated_path}' does not exist")
         sys.exit(1)
 
-    result = validate(original_path, translated_path)
+    result = validate(original_path, translated_path, check_aids=check_aids)
 
     # Handle both old (3-tuple) and new (4-tuple) return format
     if len(result) == 4:
