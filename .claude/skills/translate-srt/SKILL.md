@@ -27,47 +27,80 @@ Save the final answers to pass them to subagents.
 
 ## 1.5 LOCALE GENERATION
 
-When a locale profile is missing, generate it with a subagent:
+When a locale profile is missing, generate it through a 4-stage flow:
+**research → mark bets → user audits the bets → save corrections as traps.**
+
+The hardest part of any locale profile is the **profanity system** (section 4):
+the translation model tends to grab one local swearword and use it as a universal
+stand-in for "fuck/shit", ignoring that each word has a POLARITY (praise vs insult),
+a CONTEXT where it works, and TRAPS where it backfires (e.g. in es-CL, *como la
+mierda* means "badly", so using it to translate a compliment inverts the meaning).
+A native speaker's ear is the only reliable detector of these. So the flow makes the
+model do the legwork and mark its uncertain calls, then the user audits ONLY those.
+
+The profile MUST follow the structure in `locales/_TEMPLATE.md`. Read that template
+first — it defines all sections, especially 4a–4d.
+
+### Stage 1 — Research & draft (subagent)
 
 **Subagent prompt:**
 ```
 You are a professional linguist specializing in dialectal variation and subtitle translation.
 
-Write a compact locale profile for: [LOCALE CODE] — [LANGUAGE] as spoken in [COUNTRY/REGION].
+Write a locale profile for: [LOCALE CODE] — [LANGUAGE] as spoken in [COUNTRY/REGION].
 
-This file is read by a translation model before translating subtitles. The model already knows the language fluently. Your job is NOT to teach it — it is to ANCHOR the 4–5 dialectal axes that distinguish this locale from others, so the model doesn't drift toward a generic or neighboring variant.
+Working directory: the root of the srt_claude_translator project.
 
-Structure the profile around these linguistic axes:
+FIRST: read locales/_TEMPLATE.md. Your output MUST follow its exact structure
+(sections 1, 2, 3, 4a, 4b, 4c, 4d, 5). Fill every section.
 
-## 1. Pronominal system
-Which second-person pronoun (tú / vos / usted)? Any register exceptions? One or two lines max.
+This file is read by a translation model before translating subtitles. The model
+already knows the language fluently. Your job is NOT to teach it — it is to ANCHOR
+the dialect so it doesn't drift toward a generic/neighboring variant, AND to warn it
+about the specific swearwords/idioms that trick it (section 4c).
 
-## 2. Discourse markers
-The 3–5 oral markers that immediately signal this locale to a native ear. Discourse markers are functional words that signal turn-taking, register, or conversational rhythm — not content words or culturally untranslatable nouns. For each: the word/phrase, what it means, and one-line guidance on when to use it in subtitles (sparingly? freely? only in highly colloquial exchanges?).
+RESEARCH: use web search to verify profanity usage, polarity, and traps — do NOT
+rely on memory alone for the profanity section. Confirm against multiple sources.
 
-## 3. High-frequency lexical anchors
-The 8–10 words that come up constantly in informal dialogue and have a locale-specific form. Don't list obvious vocabulary — only words where the model might default to a different region's variant. For each: the correct local word and what NOT to use instead. Only include words where a wrong regional variant exists — if a word simply has no translation, it doesn't belong here.
+CRITICAL — mark your bets: profanity and idioms have polarity and context that are
+easy to get wrong. Any entry you are NOT 100% certain a native speaker would say —
+ESPECIALLY in sections 4a–4c — append `⚠️ APUESTA: <why you're unsure>` at the end
+of that line. Be honest and over-mark rather than under-mark: these are what the
+user will audit. Do NOT declare any single word a universal "fuck" stand-in.
 
-## 4. Profanity system
-Don't list translations of English swearwords. Instead: describe HOW profanity works in this locale. What is the most versatile/central swearword? What is the strongest? How is intensity signaled? Are there words that shift meaning entirely based on tone?
-
-For every word you mention: give the spelling to use in subtitles — one spelling only, the correct one for informal written dialogue. Do not mention alternative spellings, formal spellings, or academic spellings. One word, one form.
-
-Only include words you are certain are specific to this locale. If a word is generic Latin American or pan-Hispanic, omit it — do not pad the list.
-
-## 5. What NOT to do
-List 5–8 specific words or constructions from neighboring/related variants that would immediately sound wrong to a native of this locale. Just the words — no need to explain why.
-
-Total length: 30–40 lines. No filler. No introductions. No conclusions. Concrete examples only.
+One spelling per word (informal subtitle spelling). Concrete examples only. No filler.
 
 Save the result to: locales/[LOCALE].md
-Working directory: the root of the srt_claude_translator project
+
+Your final message must list, separately, EVERY line you marked ⚠️ APUESTA, so the
+user can audit them without reading the whole file.
 ```
 
+### Stage 2 — User audits the bets (MANDATORY on first creation)
+
 After the subagent finishes:
-- Show the user a brief summary of what was generated
-- Ask: "¿Quieres revisar o ajustar algo antes de continuar?"
-- If yes → show the file content and let them edit; if no → proceed
+1. Show the user the list of ⚠️ APUESTA lines (NOT the whole file) in a compact form:
+   > Generé el perfil es-CL. Marqué N apuestas que necesito que audites (tu oído manda):
+   > 1. "como la mierda" como elogio — no estoy seguro de la polaridad
+   > 2. ...
+2. **Do NOT proceed to translation until the user resolves these.** This audit is
+   mandatory the first time a locale is created — the profile drives every future
+   episode, so the friction is worth it. (Once audited, the profile is trusted and
+   this never runs again for that locale.)
+3. For each bet, the user confirms ✅ or corrects it. Apply their answer to the file.
+
+### Stage 3 — Save corrections as traps
+
+Every correction the user makes is dialect knowledge worth keeping. For each one,
+add (or refine) a row in the **section 4c trap table**: the word, ✅ where it works,
+❌ where it doesn't → the correction. Remove the `⚠️ APUESTA` marker once resolved.
+This is how the profile learns the user's ear over time.
+
+### Later runs
+
+When a trusted profile already exists, NEVER regenerate or re-audit it. If the user
+later reports the model misused a word, just add a new trap row to section 4c — no
+full regeneration.
 
 ## 2. PROCESS
 
